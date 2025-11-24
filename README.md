@@ -8,8 +8,6 @@
 
 Pasti Pintar is an educational technology platform designed to help Indonesian high school students excel in their UTBK/SNBT (university entrance exams). Starting as a landing page, this project is evolving into a full-featured learning management system with AI-powered learning assistance, personalized study paths, and comprehensive exam preparation tools.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1yR2RDzU6S9ia_2ZFzbO8CJpUvVv1alyO
-
 ## Vision & Mission
 
 ### Vision
