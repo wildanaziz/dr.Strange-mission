@@ -84,7 +84,6 @@ const JejaringPintar = () => {
         </div>
 
         {/* Integrated Logo Ticker - Positioned below the image baseline */}
-        {/* Removed background, borders, and gradient masks */}
         <div className="relative w-full overflow-hidden py-4">
             <div className="flex animate-scroll-left whitespace-nowrap w-max hover:[animation-play-state:paused]">
                 {[...UNIVERSITIES, ...UNIVERSITIES, ...UNIVERSITIES].map((uni, idx) => (

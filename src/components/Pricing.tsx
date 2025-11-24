@@ -37,7 +37,7 @@ const Pricing = () => {
           </p>
         </div>
 
-        {/* ================= DESKTOP VIEW (Connected Cards) ================= */}
+        {/*DESKTOP VIEW (Connected Cards)*/}
         <div className="hidden md:flex flex-row items-end justify-center w-full max-w-6xl mx-auto drop-shadow-sm filter">
           {desktopPlans.map((plan, index) => {
             const isCenter = plan.recommended; // PastiTembus (Center)
@@ -132,7 +132,7 @@ const Pricing = () => {
           })}
         </div>
 
-        {/* ================= MOBILE VIEW (Stacked Deck Slider) ================= */}
+        {/* MOBILE VIEW (Stacked Deck Slider)*/}
         <div className="md:hidden relative w-full max-w-sm mx-auto h-[680px] flex items-start justify-center pt-4">
             
             {/* Left Button */}

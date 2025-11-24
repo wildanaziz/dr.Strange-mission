@@ -4,12 +4,11 @@ import { ACCORDION_WHY_US } from '../../constants';
 
 // Master list of all images used in the component
 // Indices 0-2: Default Slideshow (Indonesian Top PTN)
-// Index 3: Harvard (For Accordion Point 2)
-// Index 4: Oxford (For Accordion Point 3)
-// Index 5: Stanford (For Accordion Point 4)
+// Index 3: HOTS (For Accordion Point 2)
+// Index 4: explain (For Accordion Point 3)
+// Index 5: doing (For Accordion Point 4)
 const ALL_IMAGES = [
   // Default Slideshow Images
-  // Ensure these files exist in your public/assets/ folder
   "/assets/UGM-BG-42.jpg",
   "/assets/ITB-BG.webp",
   "/assets/UI-BG.jpg",
@@ -53,7 +52,7 @@ const WhyUs = () => {
     if (openIndex === 2) return 4; // Accordion Poin 3
     if (openIndex === 3) return 5; // Accordion Poin 4
     
-    // Default (Accordion Poin 1) -> Slideshow
+    // Default (Accordion Poin 1)
     return slideshowIndex; 
   };
 
