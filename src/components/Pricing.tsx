@@ -3,18 +3,15 @@ import { Check, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PRICING_PLANS } from '../../constants';
 
 const Pricing = () => {
-  // State for Mobile Slider
   const [activeIndex, setActiveIndex] = useState(0); 
 
   // DESKTOP: Keep original order (Jaya, Tembus, Lulus)
   const desktopPlans = PRICING_PLANS;
 
-  // MOBILE: Reorder as requested (Tembus, Lulus, Jaya)
-  // Tembus is index 1, Lulus is index 2, Jaya is index 0 in original constant
   const mobileOrderedPlans = [
-    PRICING_PLANS[1], // PastiTembus (Gratis) - First
-    PRICING_PLANS[2], // PastiLulus - Second
-    PRICING_PLANS[0]  // PastiJaya - Third
+    PRICING_PLANS[1], 
+    PRICING_PLANS[2], 
+    PRICING_PLANS[0]  
   ];
 
   const handlePrev = () => {
@@ -161,8 +158,6 @@ const Pricing = () => {
                   const isCenter = plan.recommended; // PastiTembus (Now index 0 in mobile array)
                   
                   // Stacking Logic
-                  // Active card is 0, Next is +1, NextNext is +2
-                  // We calculate offset based on index - activeIndex
                   const offset = index - activeIndex;
                   
                   // If offset < 0 (prev card), hide or move away

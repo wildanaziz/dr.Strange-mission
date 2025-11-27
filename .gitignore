@@ -11,6 +11,9 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+server
+pasti_pintar.db
 .env.local
 STARTER.md
 CLAUDE.md
@@ -26,3 +29,24 @@ CLAUDE.md
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env
+
+# Database file
+*.db
+
+# Go build output
+/bin/
+/build/
+server
+server.exe
+server.log
+
+# IDE
+.idea/
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
