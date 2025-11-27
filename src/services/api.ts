@@ -1,5 +1,8 @@
-// Base URL for API
-const API_BASE_URL = 'http://localhost:8080/api';
+// Base URL for API uses environment variable in production, localhost in development
+// VITE_API_URL should be the base URL without /api
+const API_BASE_URL = import.meta.env.VITE_API_URL 
+  ? `${import.meta.env.VITE_API_URL}/api` 
+  : 'http://localhost:8080/api';
 
 export interface User {
   id: number;
