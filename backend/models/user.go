@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// User represents a user in our system
+// User represents
 type User struct {
 	ID            uint           `json:"id" gorm:"primaryKey"`
 	FullName      string         `json:"full_name" gorm:"size:255"`
@@ -22,7 +22,7 @@ type User struct {
 	DeletedAt     gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
-// SignupRequest data sent from frontend signup form
+// SignupReques
 type SignupRequest struct {
 	FullName        string `json:"full_name" validate:"required,min=2"`
 	Email           string `json:"email" validate:"required,email"`
@@ -31,25 +31,24 @@ type SignupRequest struct {
 	ConfirmPassword string `json:"confirm_password" validate:"required"`
 }
 
-// LoginRequest for data sent from frontend login form
+// LoginRequest
 type LoginRequest struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
 }
 
-// ForgotPasswordRequest for password reset
+// ForgotPasswordRequest
 type ForgotPasswordRequest struct {
 	Email string `json:"email" validate:"required,email"`
 }
 
-// AuthResponse for data sent back after successful login/signup
+// AuthResponse
 type AuthResponse struct {
 	Message string `json:"message"`
 	Token   string `json:"token"`
 	User    User   `json:"user"`
 }
 
-// standardized error format
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Message string `json:"message"`
@@ -65,7 +64,6 @@ type PasswordResetToken struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-// for data for resetting password with token
 type ResetPasswordRequest struct {
 	Token           string `json:"token" validate:"required"`
 	Password        string `json:"password" validate:"required,min=8"`

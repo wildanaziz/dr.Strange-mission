@@ -2,10 +2,12 @@ package database
 
 import (
 	"log"
+	"strings"
 
-	"pasti-pintar-backend/config"
-	"pasti-pintar-backend/models"
+	"pasti-pintar/backend/config"
+	"pasti-pintar/backend/models"
 
+	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -17,9 +19,28 @@ var DB *gorm.DB
 // Connect establishes connection to the database
 func Connect() {
 	var err error
+	var dialector gorm.Dialector
 
-	// Open SQLite database
-	DB, err = gorm.Open(sqlite.Open(config.AppConfig.DatabaseURL), &gorm.Config{
+	dbURL := config.AppConfig.DatabaseURL
+	dbType := config.AppConfig.DatabaseType
+
+	// Auto-detect database type from URL if not explicitly set or set to default
+	if dbType == "" || dbType == "sqlite" {
+		if strings.HasPrefix(dbURL, "postgres://") || strings.HasPrefix(dbURL, "postgresql://") {
+			dbType = "postgres"
+		}
+	}
+
+	switch dbType {
+	case "postgres":
+		dialector = postgres.Open(dbURL)
+		log.Println("Connecting to PostgreSQL database...")
+	default:
+		dialector = sqlite.Open(dbURL)
+		log.Println("Connecting to SQLite database...")
+	}
+
+	DB, err = gorm.Open(dialector, &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Info),
 	})
 

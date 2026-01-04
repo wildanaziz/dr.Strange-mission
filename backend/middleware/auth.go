@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"pasti-pintar-backend/utils"
+	"pasti-pintar/backend/utils"
 )
 
 // for storing data in request context
@@ -40,6 +40,13 @@ func JWTAuth(next http.Handler) http.Handler {
 		claims, err := utils.ValidateToken(tokenString)
 		if err != nil {
 			http.Error(w, `{"error": "unauthorized", "message": "Token tidak valid atau sudah expired"}`, http.StatusUnauthorized)
+			return
+		}
+
+		// Check if token is blacklisted (logged out)
+		blacklist := utils.GetTokenBlacklist()
+		if blacklist.IsBlacklisted(tokenString) {
+			http.Error(w, `{"error": "unauthorized", "message": "Token sudah tidak valid (logged out)"}`, http.StatusUnauthorized)
 			return
 		}
 

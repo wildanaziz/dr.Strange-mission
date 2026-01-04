@@ -1,52 +1,59 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"os"
+	"time"
 
-	"pasti-pintar-backend/config"
-	"pasti-pintar-backend/database"
-	"pasti-pintar-backend/handlers"
-	"pasti-pintar-backend/middleware"
+	"pasti-pintar/backend/config"
+	"pasti-pintar/backend/database"
+	"pasti-pintar/backend/handlers"
+	"pasti-pintar/backend/middleware"
+	"pasti-pintar/backend/utils"
 
 	"github.com/gorilla/mux"
 	"github.com/rs/cors"
 )
 
 func main() {
+	utils.InitLogger()
+	logger := utils.GetLogger()
+	logger.Info().Msg("Starting Pasti Pintar Backend...")
 	config.LoadConfig()
 	database.Connect()
-
-	// create react router
+	utils.InitValidator()
+	utils.InitTokenBlacklist()
+	utils.InitOAuthStateManager()
+	logger.Info().Msg("All services initialized successfully")
 	router := mux.NewRouter()
 
-	// define api router
+	// Apply global middleware (order matters!)
+	router.Use(middleware.RequestID)
+	router.Use(middleware.LoggingMiddleware)
+	router.Use(middleware.SecurityHeaders)
+	router.Use(middleware.RequestSizeLimit(10 * 1024 * 1024))
+
+	// if using with HTTPS for prod
+	// router.Use(middleware.HTTPSRedirect)
 	api := router.PathPrefix("/api").Subrouter()
+	api.HandleFunc("/health", handlers.Health).Methods("GET")
+	api.HandleFunc("/health/simple", handlers.HealthSimple).Methods("GET")
+	rateLimiter := middleware.NewRateLimiter(100, time.Minute)
+	publicRoutes := api.PathPrefix("").Subrouter()
+	publicRoutes.Use(rateLimiter.Limit)
+	publicRoutes.HandleFunc("/signup", handlers.Signup).Methods("POST")
+	publicRoutes.HandleFunc("/login", handlers.Login).Methods("POST")
+	publicRoutes.HandleFunc("/forgot-password", handlers.ForgotPassword).Methods("POST")
+	publicRoutes.HandleFunc("/reset-password", handlers.ResetPassword).Methods("POST")
+	publicRoutes.HandleFunc("/auth/google", handlers.GoogleLogin).Methods("GET")
+	publicRoutes.HandleFunc("/auth/google/callback", handlers.GoogleCallback).Methods("GET")
 
-	// GET /api/health
-	api.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok","message":"Pasti Pintar API is running"}`))
-	}).Methods("GET")
-
-	api.HandleFunc("/signup", handlers.Signup).Methods("POST")
-	api.HandleFunc("/login", handlers.Login).Methods("POST")
-	api.HandleFunc("/forgot-password", handlers.ForgotPassword).Methods("POST")
-	api.HandleFunc("/reset-password", handlers.ResetPassword).Methods("POST")
-	api.HandleFunc("/auth/google", handlers.GoogleLogin).Methods("GET")
-	api.HandleFunc("/auth/google/callback", handlers.GoogleCallback).Methods("GET")
-
-	// Create a sub-router for protected routes
 	protected := api.PathPrefix("").Subrouter()
-
-	// JWT middleware
 	protected.Use(middleware.JWTAuth)
+	protected.Use(rateLimiter.Limit)
 	protected.HandleFunc("/me", handlers.GetCurrentUser).Methods("GET")
 	protected.HandleFunc("/logout", handlers.Logout).Methods("POST")
 
-	// Get frontend URL from environment (for production CORS)
 	frontendURL := os.Getenv("FRONTEND_URL")
 	allowedOrigins := []string{"http://localhost:3000", "http://localhost:3001"}
 	if frontendURL != "" {
@@ -56,24 +63,32 @@ func main() {
 	c := cors.New(cors.Options{
 		AllowedOrigins:   allowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Authorization", "Content-Type"},
+		AllowedHeaders:   []string{"Authorization", "Content-Type", "X-Request-ID"},
 		AllowCredentials: true,
+		ExposedHeaders:   []string{"X-Request-ID"},
 	})
 
-	// Wrap our router with CORS middleware
 	handler := c.Handler(router)
 
-	// Start the server
+	//start server
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
-	log.Printf("Server starting on http://localhost:%s", port)
-	log.Printf("API endpoints available at http://localhost:%s/api", port)
+	logger.Info().
+		Str("port", port).
+		Strs("allowed_origins", allowedOrigins).
+		Msg("Server starting")
 
-	// ListenAndServe starts the HTTP server
+	logger.Info().
+		Str("url", "http://localhost:"+port).
+		Str("api", "http://localhost:"+port+"/api").
+		Str("health", "http://localhost:"+port+"/api/health").
+		Msg("Server endpoints")
+
+	//ListenAndServe
 	if err := http.ListenAndServe(":"+port, handler); err != nil {
-		log.Fatal("Server failed to start:", err)
+		logger.Fatal().Err(err).Msg("Server failed to start")
 	}
 }

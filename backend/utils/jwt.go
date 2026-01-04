@@ -4,7 +4,7 @@ import (
 	"errors"
 	"time"
 
-	"pasti-pintar-backend/config"
+	"pasti-pintar/backend/config"
 
 	"github.com/golang-jwt/jwt/v5"
 )

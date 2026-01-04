@@ -16,6 +16,8 @@ import Signup from './src/pages/Signup';
 import ForgotPassword from './src/pages/ForgotPassword';
 import ResetPassword from './src/pages/ResetPassword';
 import AuthCallback from './src/pages/AuthCallback';
+import Dashboard from './src/pages/Dashboard';
+import Profile from './src/pages/Profile';
 
 export default function App() {
   return (
@@ -52,6 +54,12 @@ export default function App() {
         
         {/* OAuth callback route - handles Google OAuth redirect */}
         <Route path="/auth/callback" element={<AuthCallback />} />
+
+        {/* Dashboard Route - User lands here after login */}
+        <Route path="/dashboard" element={<Dashboard />} />
+
+        {/* Profile Route - User profile settings */}
+        <Route path="/profile" element={<Profile />} />
       </Routes>
       </AuthProvider>
     </BrowserRouter>

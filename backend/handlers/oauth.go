@@ -5,22 +5,19 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 
-	"pasti-pintar-backend/config"
-	"pasti-pintar-backend/database"
-	"pasti-pintar-backend/models"
-	"pasti-pintar-backend/utils"
+	"pasti-pintar/backend/config"
+	"pasti-pintar/backend/database"
+	"pasti-pintar/backend/models"
+	"pasti-pintar/backend/utils"
 
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
 
-// Google OAuth configuration
 var googleOAuthConfig *oauth2.Config
 
-// Initialize OAuth config (called from main.go or init)
 func init() {
 
 }
@@ -51,69 +48,97 @@ type GoogleUserInfo struct {
 
 // Start Google OAuth flow
 func GoogleLogin(w http.ResponseWriter, r *http.Request) {
-	// Check if Google OAuth is configured
 	if config.AppConfig.GoogleClientID == "" {
 		sendError(w, http.StatusServiceUnavailable, "oauth_not_configured", "Google OAuth belum dikonfigurasi")
 		return
 	}
 
 	oauthConfig := getGoogleOAuthConfig()
-	state := "random-state-string"
+
+	stateManager := utils.GetOAuthStateManager()
+	state, err := stateManager.GenerateState()
+	if err != nil {
+		utils.LogError(err, "Error generating OAuth state", nil)
+		sendError(w, http.StatusInternalServerError, "server_error", "Terjadi kesalahan server")
+		return
+	}
+
 	url := oauthConfig.AuthCodeURL(state, oauth2.AccessTypeOffline)
 
-	// Redirect user to Google
-	log.Printf("Redirecting to Google OAuth: %s", url)
+	utils.LogInfo("Redirecting to Google OAuth", map[string]interface{}{
+		"state": state,
+	})
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 // Handle Google OAuth callback
 func GoogleCallback(w http.ResponseWriter, r *http.Request) {
-	//Get authorization code from URL
+	state := r.URL.Query().Get("state")
+	if state == "" {
+		utils.LogWarn("OAuth callback missing state", nil)
+		http.Redirect(w, r, config.AppConfig.FrontendURL+"/login?error=invalid_state", http.StatusTemporaryRedirect)
+		return
+	}
+
+	stateManager := utils.GetOAuthStateManager()
+	if !stateManager.ValidateState(state) {
+		utils.LogWarn("OAuth callback invalid state", map[string]interface{}{
+			"state": state,
+		})
+		http.Redirect(w, r, config.AppConfig.FrontendURL+"/login?error=invalid_state", http.StatusTemporaryRedirect)
+		return
+	}
+
 	code := r.URL.Query().Get("code")
 	if code == "" {
-		log.Printf("No code in callback")
+		utils.LogWarn("OAuth callback missing code", nil)
 		http.Redirect(w, r, config.AppConfig.FrontendURL+"/login?error=oauth_failed", http.StatusTemporaryRedirect)
 		return
 	}
 
-	// Exchange code for access token
 	oauthConfig := getGoogleOAuthConfig()
 	token, err := oauthConfig.Exchange(context.Background(), code)
 	if err != nil {
-		log.Printf("Failed to exchange code: %v", err)
+		utils.LogError(err, "Failed to exchange OAuth code", nil)
 		http.Redirect(w, r, config.AppConfig.FrontendURL+"/login?error=oauth_failed", http.StatusTemporaryRedirect)
 		return
 	}
 
-	//Get user info from Google
 	userInfo, err := getGoogleUserInfo(token.AccessToken)
 	if err != nil {
-		log.Printf("Failed to get user info: %v", err)
+		utils.LogError(err, "Failed to get Google user info", nil)
 		http.Redirect(w, r, config.AppConfig.FrontendURL+"/login?error=oauth_failed", http.StatusTemporaryRedirect)
 		return
 	}
 
-	log.Printf("Google user info: %s (%s)", userInfo.Name, userInfo.Email)
+	utils.LogInfo("Google user info retrieved", map[string]interface{}{
+		"name":  userInfo.Name,
+		"email": userInfo.Email,
+	})
 
-	//Find or create user in our database
 	user, err := findOrCreateGoogleUser(userInfo)
 	if err != nil {
-		log.Printf("Failed to create user: %v", err)
+		utils.LogError(err, "Failed to create Google user", map[string]interface{}{
+			"email": userInfo.Email,
+		})
 		http.Redirect(w, r, config.AppConfig.FrontendURL+"/login?error=oauth_failed", http.StatusTemporaryRedirect)
 		return
 	}
 
-	//Generate our JWT token
 	jwtToken, err := utils.GenerateToken(user.ID, user.Email)
 	if err != nil {
-		log.Printf("Failed to generate token: %v", err)
+		utils.LogError(err, "Failed to generate JWT token", map[string]interface{}{
+			"user_id": user.ID,
+		})
 		http.Redirect(w, r, config.AppConfig.FrontendURL+"/login?error=oauth_failed", http.StatusTemporaryRedirect)
 		return
 	}
 
-	//Redirect to frontend with token
 	redirectURL := fmt.Sprintf("%s/auth/callback?token=%s", config.AppConfig.FrontendURL, jwtToken)
-	log.Printf("Google OAuth successful for: %s", user.Email)
+	utils.LogInfo("Google OAuth successful", map[string]interface{}{
+		"user_id": user.ID,
+		"email":   user.Email,
+	})
 	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }
 
@@ -139,7 +164,6 @@ func getGoogleUserInfo(accessToken string) (*GoogleUserInfo, error) {
 
 // Find existing user or create new one from Google info
 func findOrCreateGoogleUser(googleUser *GoogleUserInfo) (*models.User, error) {
-	//try to find by Google provider ID
 	user, err := database.GetUserByProviderID("google", googleUser.ID)
 	if err == nil {
 		user.FullName = googleUser.Name
@@ -149,7 +173,6 @@ func findOrCreateGoogleUser(googleUser *GoogleUserInfo) (*models.User, error) {
 		return user, nil
 	}
 
-	// Check if email already exists (user might have signed up with email first)
 	user, err = database.GetUserByEmail(googleUser.Email)
 	if err == nil {
 		user.Provider = "google"
@@ -160,7 +183,6 @@ func findOrCreateGoogleUser(googleUser *GoogleUserInfo) (*models.User, error) {
 		return user, nil
 	}
 
-	// Create new user
 	user = &models.User{
 		FullName:      googleUser.Name,
 		Email:         googleUser.Email,

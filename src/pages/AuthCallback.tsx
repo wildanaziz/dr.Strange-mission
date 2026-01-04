@@ -37,8 +37,8 @@ export default function AuthCallback() {
         api.setStoredUser(user);
         setUser(user);
 
-        // Redirect to home page karena belom jadi dashbor e wkwk
-        navigate('/', { replace: true });
+        // Redirect to dashboard after successful login
+        navigate('/dashboard', { replace: true });
       } catch (err) {
         console.error('Auth callback error:', err);
         setError('Failed to complete authentication');

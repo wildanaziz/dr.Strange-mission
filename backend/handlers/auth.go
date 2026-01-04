@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"pasti-pintar-backend/database"
-	"pasti-pintar-backend/middleware"
-	"pasti-pintar-backend/models"
-	"pasti-pintar-backend/utils"
+	"pasti-pintar/backend/database"
+	"pasti-pintar/backend/middleware"
+	"pasti-pintar/backend/models"
+	"pasti-pintar/backend/utils"
 )
 
 // sendJSON sends a JSON response with the given status code
@@ -39,13 +39,18 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Sanitize and normalize input
+	req.FullName = utils.SanitizeString(req.FullName)
+	req.Email = utils.NormalizeEmail(req.Email)
+	req.Phone = utils.SanitizeString(req.Phone)
+
 	// Validate input
 	if req.FullName == "" || req.Email == "" || req.Password == "" {
 		sendError(w, http.StatusBadRequest, "validation_error", "Nama, email, dan password wajib diisi")
 		return
 	}
 
-	// Check password length
+	// Check password strength (consistent 8 chars minimum)
 	if len(req.Password) < 8 {
 		sendError(w, http.StatusBadRequest, "validation_error", "Password minimal 8 karakter")
 		return
@@ -57,8 +62,6 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-
 	// Check if email already exists
 	existingUser, _ := database.GetUserByEmail(req.Email)
 	if existingUser != nil {
@@ -69,7 +72,9 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	// Hash password
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
-		log.Printf("Error hashing password: %v", err)
+		utils.LogError(err, "Error hashing password", map[string]interface{}{
+			"email": req.Email,
+		})
 		sendError(w, http.StatusInternalServerError, "server_error", "Terjadi kesalahan server")
 		return
 	}
@@ -84,7 +89,9 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := database.CreateUser(user); err != nil {
-		log.Printf("Error creating user: %v", err)
+		utils.LogError(err, "Error creating user", map[string]interface{}{
+			"email": user.Email,
+		})
 		sendError(w, http.StatusInternalServerError, "server_error", "Gagal membuat akun")
 		return
 	}
@@ -92,13 +99,18 @@ func Signup(w http.ResponseWriter, r *http.Request) {
 	// Generate JWT token
 	token, err := utils.GenerateToken(user.ID, user.Email)
 	if err != nil {
-		log.Printf("Error generating token: %v", err)
+		utils.LogError(err, "Error generating token", map[string]interface{}{
+			"user_id": user.ID,
+		})
 		sendError(w, http.StatusInternalServerError, "server_error", "Gagal membuat token")
 		return
 	}
 
 	// Send success response
-	log.Printf("New user registered: %s", user.Email)
+	utils.LogInfo("New user registered", map[string]interface{}{
+		"user_id": user.ID,
+		"email":   user.Email,
+	})
 	sendJSON(w, http.StatusCreated, models.AuthResponse{
 		Message: "Akun berhasil dibuat",
 		Token:   token,
@@ -115,7 +127,8 @@ func Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	// Normalize email
+	req.Email = utils.NormalizeEmail(req.Email)
 
 	// Find user by email
 	user, err := database.GetUserByEmail(req.Email)
@@ -139,13 +152,18 @@ func Login(w http.ResponseWriter, r *http.Request) {
 	// Generate JWT token
 	token, err := utils.GenerateToken(user.ID, user.Email)
 	if err != nil {
-		log.Printf("Error generating token: %v", err)
+		utils.LogError(err, "Error generating token", map[string]interface{}{
+			"user_id": user.ID,
+		})
 		sendError(w, http.StatusInternalServerError, "server_error", "Gagal membuat token")
 		return
 	}
 
 	// Send success response
-	log.Printf("User logged in: %s", user.Email)
+	utils.LogInfo("User logged in", map[string]interface{}{
+		"user_id": user.ID,
+		"email":   user.Email,
+	})
 	sendJSON(w, http.StatusOK, models.AuthResponse{
 		Message: "Login berhasil",
 		Token:   token,
@@ -162,7 +180,8 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
+	// Normalize email
+	req.Email = utils.NormalizeEmail(req.Email)
 
 	// Step 2: Check if user exists
 	user, err := database.GetUserByEmail(req.Email)
@@ -184,7 +203,9 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request) {
 	//Generate unique reset token
 	tokenBytes := make([]byte, 32)
 	if _, err := rand.Read(tokenBytes); err != nil {
-		log.Printf("Error generating token: %v", err)
+		utils.LogError(err, "Error generating reset token", map[string]interface{}{
+			"user_id": user.ID,
+		})
 		sendError(w, http.StatusInternalServerError, "server_error", "Gagal membuat token")
 		return
 	}
@@ -217,13 +238,19 @@ func ForgotPassword(w http.ResponseWriter, r *http.Request) {
 
 	if smtpUsername != "" && smtpPassword != "" {
 		if err := utils.SendPasswordResetEmail(user.Email, resetToken, frontendURL); err != nil {
-			log.Printf("Error sending email: %v", err)
+			utils.LogError(err, "Error sending password reset email", map[string]interface{}{
+				"email": user.Email,
+			})
 		} else {
-			log.Printf("Password reset email sent to: %s", user.Email)
+			utils.LogInfo("Password reset email sent", map[string]interface{}{
+				"email": user.Email,
+			})
 		}
 	} else {
-		log.Printf("Email not configured. Reset token for %s: %s", user.Email, resetToken)
-		log.Printf("Reset link would be: %s/reset-password?token=%s", frontendURL, resetToken)
+		utils.LogInfo("Email not configured - logging reset link", map[string]interface{}{
+			"email":      user.Email,
+			"reset_link": frontendURL + "/reset-password?token=" + resetToken,
+		})
 	}
 
 	sendJSON(w, http.StatusOK, map[string]string{
@@ -251,8 +278,8 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if len(req.Password) < 6 {
-		sendError(w, http.StatusBadRequest, "weak_password", "Password minimal 6 karakter")
+	if len(req.Password) < 8 {
+		sendError(w, http.StatusBadRequest, "weak_password", "Password minimal 8 karakter")
 		return
 	}
 
@@ -289,14 +316,18 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 	// Hash new password
 	hashedPassword, err := utils.HashPassword(req.Password)
 	if err != nil {
-		log.Printf("Error hashing password: %v", err)
+		utils.LogError(err, "Error hashing new password", map[string]interface{}{
+			"user_id": user.ID,
+		})
 		sendError(w, http.StatusInternalServerError, "server_error", "Gagal mengubah password")
 		return
 	}
 
 	// Update user password
 	if err := database.DB.Model(&user).Update("password", hashedPassword).Error; err != nil {
-		log.Printf("Error updating password: %v", err)
+		utils.LogError(err, "Error updating password", map[string]interface{}{
+			"user_id": user.ID,
+		})
 		sendError(w, http.StatusInternalServerError, "server_error", "Gagal mengubah password")
 		return
 	}
@@ -304,7 +335,10 @@ func ResetPassword(w http.ResponseWriter, r *http.Request) {
 	// Step 8: Mark token as used
 	database.DB.Model(&resetToken).Update("used", true)
 
-	log.Printf("Password reset successful for: %s", user.Email)
+	utils.LogInfo("Password reset successful", map[string]interface{}{
+		"user_id": user.ID,
+		"email":   user.Email,
+	})
 	sendJSON(w, http.StatusOK, map[string]string{
 		"message": "Password berhasil diubah. Silakan login dengan password baru.",
 	})
@@ -329,7 +363,26 @@ func GetCurrentUser(w http.ResponseWriter, r *http.Request) {
 
 // Logout
 func Logout(w http.ResponseWriter, r *http.Request) {
-	log.Printf("User logged out")
+	userID := middleware.GetUserIDFromContext(r)
+
+	// Extract token from header
+	authorization := r.Header.Get("Authorization")
+	if authorization != "" && strings.HasPrefix(authorization, "Bearer ") {
+		token := strings.TrimPrefix(authorization, "Bearer ")
+
+		// Validate and get token claims to get expiration
+		claims, err := utils.ValidateToken(token)
+		if err == nil {
+			// Add token to blacklist
+			blacklist := utils.GetTokenBlacklist()
+			blacklist.Add(token, claims.ExpiresAt.Time)
+
+			utils.LogInfo("User logged out", map[string]interface{}{
+				"user_id": userID,
+			})
+		}
+	}
+
 	sendJSON(w, http.StatusOK, map[string]string{
 		"message": "Logout berhasil",
 	})

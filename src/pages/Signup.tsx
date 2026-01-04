@@ -56,8 +56,8 @@ const Signup = () => {
         phone: formData.phone,
       });
 
-      // Success! Redirect to home page
-      navigate('/');
+      // Success! Redirect to dashboard
+      navigate('/dashboard');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Pendaftaran gagal. Silakan coba lagi.');
     } finally {

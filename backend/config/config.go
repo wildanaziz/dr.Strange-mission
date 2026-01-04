@@ -9,18 +9,13 @@ import (
 
 // config
 var AppConfig struct {
-	// JWT secret key
-	JWTSecret string
-
-	// Google OAuth credentials
+	JWTSecret          string
 	GoogleClientID     string
 	GoogleClientSecret string
 	GoogleRedirectURL  string
-
-	// db connection
-	DatabaseURL string
-
-	FrontendURL string
+	DatabaseURL        string
+	DatabaseType       string
+	FrontendURL        string
 }
 
 // LoadConfig
@@ -44,6 +39,7 @@ func LoadConfig() {
 	AppConfig.GoogleClientSecret = getEnv("GOOGLE_CLIENT_SECRET", "")
 	AppConfig.GoogleRedirectURL = getEnv("GOOGLE_REDIRECT_URL", "http://localhost:8080/api/auth/google/callback")
 	AppConfig.DatabaseURL = getEnv("DATABASE_URL", "./pasti_pintar.db")
+	AppConfig.DatabaseType = getEnv("DATABASE_TYPE", "sqlite") // default to sqlite for local dev
 	AppConfig.FrontendURL = getEnv("FRONTEND_URL", "http://localhost:3000")
 
 	// Validate

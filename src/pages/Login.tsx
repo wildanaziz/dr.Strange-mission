@@ -29,8 +29,8 @@ const Login = () => {
 
     try {
       await login(formData);
-      // Success! Redirect to home page
-      navigate('/');
+      // Success! Redirect to dashboard
+      navigate('/dashboard');
     } catch (err) {
       // Show error message
       setError(err instanceof Error ? err.message : 'Login gagal. Silakan coba lagi.');
