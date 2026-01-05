@@ -28,12 +28,11 @@ To become Indonesia's leading EdTech platform that empowers every high school st
 - [DONE] Testimonials and social proof
 - [DONE] University partnership display
 
-**Next Phase**: Core Platform Development (In Planning)
-- [ON-PROGRESS] User authentication and profile management
+**Next Phase**: Core Platform Development
+- [DONE] User authentication and profile management
 - [ON-PROGRESS] Learning dashboard
 - [ON-PROGRESS] Content management system for study materials
 - [ON-PROGRESS] Practice test engine
-- [ON-PROGRESS] AI-powered study assistant (Gemini integration)
 
 ## Current Features (Landing Page)
 
@@ -66,7 +65,6 @@ To become Indonesia's leading EdTech platform that empowers every high school st
 - **Timed Mock Exams**: Full-length simulated UTBK tests with real exam conditions
 
 #### AI-Powered Features
-- **AI Study Assistant**: 24/7 chatbot powered by Google Gemini for instant question help
 - **Adaptive Learning**: Content difficulty adjusts based on student performance
 - **Smart Recommendations**: Personalized topic suggestions based on learning patterns
 - **Weak Point Analysis**: AI identifies knowledge gaps and suggests targeted practice
@@ -87,7 +85,6 @@ To become Indonesia's leading EdTech platform that empowers every high school st
 
 - **Content Creation Tools**: Upload and manage study materials
 - **Student Management**: Monitor student progress and engagement
-- **Class Analytics**: Aggregate performance data for entire classes
 - **Live Sessions**: Host virtual classes and Q&A sessions
 - **Assignment Management**: Create, distribute, and grade assignments
 
@@ -107,7 +104,6 @@ To become Indonesia's leading EdTech platform that empowers every high school st
 - **Styling**: Tailwind CSS (via CDN)
 - **Icons**: Lucide React
 - **Font**: Plus Jakarta Sans (Google Fonts)
-- **AI Integration**: Google Gemini API (planned)
 
 ### Planned Stack (Full Platform)
 
@@ -145,7 +141,6 @@ To become Indonesia's leading EdTech platform that empowers every high school st
 - **Testing**: testify for assertions, gomock for mocking
 
 #### AI & ML
-- Google Gemini API for conversational AI
 - Custom ML models for adaptive learning (TensorFlow.js)
 - Natural Language Processing for question analysis
 - Recommendation engine for personalized content
@@ -182,7 +177,6 @@ pasti-pintar/
 ├── tsconfig.json            # TypeScript configuration
 ├── package.json             # Project dependencies
 ├── .env.local               # Environment variables (not in git)
-├── CLAUDE.md                # AI assistant project guidelines
 └── README.md                # This file
 ```
 
@@ -262,16 +256,7 @@ pasti-pintar/
 
 3. **Set up environment variables:**
 
-   Create a `.env.local` file in the root directory:
-   ```env
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
-
-   To get a Gemini API key:
-   - Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-   - Sign in with your Google account
-   - Create a new API key
-   - Copy and paste it into `.env.local`
+   Create a `.env.local` file in the root directory
 
 4. **Run the development server:**
    ```bash
@@ -311,15 +296,14 @@ npm run lint
 - [DONE] User research and feedback collection
 - [DONE] Technical architecture planning
 
-### Phase 2: MVP Platform (December 2025)
-- User authentication (email, Google OAuth)
-- Student dashboard with basic profile
-- Study materials library (static content)
-- Basic practice quiz engine
-- Payment integration (Midtrans/Xendit)
+### Phase 2: MVP Platform (January 2025)
+- [DONE] User authentication (email, Google OAuth)
+- [ON PROGRESS] Student dashboard with basic profile
+- [ON PROGRESS] Study materials library (static content)
+- [ON PROGRESS] Basic practice quiz engine
+- [ON PROGRESS] Payment integration (doku)
 
-### Phase 3: Core Features (December 2025)
-- AI tutor integration with Gemini
+### Phase 3: Core Features (January 2025)
 - Full mock exam system with timer
 - Progress tracking and analytics
 - Study plan generator
@@ -332,7 +316,7 @@ npm run lint
 - Push notifications
 - Mobile app (React Native)
 
-### Phase 5: Advanced Features (2026+)
+### Phase 5: Advanced Features (Feb 2026+)
 - Live online classes
 - Video content library
 - Adaptive learning algorithms
@@ -389,12 +373,8 @@ npm run lint
 | `ENV` | Environment (development/staging/production) | No | `development` |
 | `DATABASE_URL` | PostgreSQL connection string | Yes | - |
 | `REDIS_URL` | Redis connection string | Yes | - |
-| `GEMINI_API_KEY` | Google Gemini API key | Yes | - |
 | `JWT_SECRET` | Secret key for JWT tokens | Yes | - |
 | `JWT_EXPIRATION` | JWT token expiration time | No | `24h` |
-| `AWS_ACCESS_KEY_ID` | AWS access key for S3 | No | - |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key for S3 | No | - |
-| `AWS_S3_BUCKET` | S3 bucket name for file uploads | No | - |
 | `ALLOWED_ORIGINS` | CORS allowed origins | No | `http://localhost:3000` |
 
 **Example Backend .env file:**
@@ -402,140 +382,11 @@ npm run lint
 PORT=8080
 ENV=development
 DATABASE_URL=postgresql://user:password@localhost:5432/pasti_pintar?sslmode=disable
-REDIS_URL=redis://localhost:6379
-GEMINI_API_KEY=your_gemini_api_key
 JWT_SECRET=your_super_secret_jwt_key_change_this_in_production
-JWT_EXPIRATION=24h
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
 ## API Integration (Planned)
-
-### Gemini AI API
-
-The platform will integrate Google's Gemini API for:
-- **Conversational AI Tutor**: Answer student questions in natural Indonesian language
-- **Content Generation**: Create practice questions and study materials
-- **Smart Explanations**: Provide detailed explanations for incorrect answers
-- **Study Tips**: Offer personalized learning strategies
-
-#### Frontend Integration (TypeScript):
-```typescript
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-// AI Tutor conversation
-const chat = model.startChat({
-  history: conversationHistory,
-  generationConfig: {
-    maxOutputTokens: 1000,
-    temperature: 0.7,
-  },
-});
-
-const result = await chat.sendMessage(studentQuestion);
-```
-
-#### Backend Integration (Go):
-```go
-package services
-
-import (
-    "context"
-    "fmt"
-
-    "github.com/google/generative-ai-go/genai"
-    "google.golang.org/api/option"
-)
-
-type AITutorService struct {
-    client *genai.Client
-    model  *genai.GenerativeModel
-}
-
-func NewAITutorService(apiKey string) (*AITutorService, error) {
-    ctx := context.Background()
-    client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
-    if err != nil {
-        return nil, fmt.Errorf("failed to create genai client: %w", err)
-    }
-
-    model := client.GenerativeModel("gemini-pro")
-    model.SetTemperature(0.7)
-    model.SetMaxOutputTokens(1000)
-
-    return &AITutorService{
-        client: client,
-        model:  model,
-    }, nil
-}
-
-func (s *AITutorService) AskQuestion(ctx context.Context, question string) (string, error) {
-    resp, err := s.model.GenerateContent(ctx, genai.Text(question))
-    if err != nil {
-        return "", fmt.Errorf("failed to generate content: %w", err)
-    }
-
-    if len(resp.Candidates) == 0 {
-        return "", fmt.Errorf("no response from AI")
-    }
-
-    return fmt.Sprintf("%v", resp.Candidates[0].Content.Parts[0]), nil
-}
-
-func (s *AITutorService) Close() error {
-    return s.client.Close()
-}
-```
-
-### REST API Architecture (Go Backend)
-
-The backend will follow a clean architecture pattern with the following layers:
-
-**1. Handler Layer** (HTTP)
-```go
-// internal/handlers/tutor_handler.go
-type TutorHandler struct {
-    tutorService services.TutorService
-}
-
-func (h *TutorHandler) AskAI(c *gin.Context) {
-    var req dto.AIQuestionRequest
-    if err := c.ShouldBindJSON(&req); err != nil {
-        c.JSON(400, gin.H{"error": "Invalid request"})
-        return
-    }
-
-    answer, err := h.tutorService.AskQuestion(c.Request.Context(), req.Question)
-    if err != nil {
-        c.JSON(500, gin.H{"error": "Failed to get AI response"})
-        return
-    }
-
-    c.JSON(200, dto.AIQuestionResponse{Answer: answer})
-}
-```
-
-**2. Service Layer** (Business Logic)
-```go
-// internal/services/tutor_service.go
-type TutorService interface {
-    AskQuestion(ctx context.Context, question string) (string, error)
-    GetStudyPlan(ctx context.Context, studentID uint) (*dto.StudyPlan, error)
-}
-```
-
-**3. Repository Layer** (Database Access)
-```go
-// internal/repository/student_repository.go
-type StudentRepository interface {
-    Create(ctx context.Context, student *models.Student) error
-    GetByID(ctx context.Context, id uint) (*models.Student, error)
-    GetProgress(ctx context.Context, studentID uint) (*models.Progress, error)
-}
-```
 
 ### Go Backend Best Practices
 
@@ -610,12 +461,6 @@ go get -u github.com/joho/godotenv
 **Validation:**
 ```bash
 go get -u github.com/go-playground/validator/v10
-```
-
-**Gemini AI:**
-```bash
-go get -u github.com/google/generative-ai-go/genai
-go get -u google.golang.org/api/option
 ```
 
 **API Documentation:**
@@ -924,15 +769,12 @@ This project is proprietary and confidential. All rights reserved.
 ## Support & Contact
 
 - **Website**: [Coming Soon]
-- **Email**: support@pastipintar.com
-- **Instagram**: [@pastipintar](https://instagram.com/pastipintar)
-- **Discord Community**: [Join our server]
-
+- **Email**: [Coming Soon]
+- **Instagram**: [Coming Soon]
 ## Acknowledgments
 
 - Indonesian high school students and teachers for their invaluable feedback
 - Open source community for amazing tools and libraries
-- Google Gemini for AI capabilities
 - Go community for excellent backend development tools
 - React and Vite teams for modern frontend development
 - All contributors who help make education accessible
@@ -941,7 +783,7 @@ This project is proprietary and confidential. All rights reserved.
 
 <div align="center">
 
-**Built with ❤️ for Indonesian students dreaming of top universities**
+**for Indonesian students dreaming of top universities**
 
 *Pasti Pintar - Pasti Bisa Masuk PTN Impian!*
 
